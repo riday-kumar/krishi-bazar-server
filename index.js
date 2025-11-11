@@ -6,9 +6,39 @@ const app = express();
 const port = process.env.PORT || 5000;
 require("dotenv").config();
 
+const admin = require("firebase-admin");
+const serviceAccount = require("./accountKey.json");
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
 // middleware
 app.use(express.json());
 app.use(cors());
+
+const verifyFireBaseToken = async (req, res, next) => {
+  // console.log("in the verify middleware", req.headers.authorization);
+
+  if (!req.headers.authorization) {
+    // do not allow to go
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+
+  const token = req.headers.authorization.split(" ")[1];
+  if (!token) {
+    return res.status(401).send({ message: "Unauthorized access" });
+  }
+
+  try {
+    const userInfo = await admin.auth().verifyIdToken(token);
+    req.token_email = userInfo.email;
+    // console.log("after token velidation", userInfo);
+    next();
+  } catch {
+    // console.log("invalid token");
+    return res.status(401).send({ message: "Unauthorized access" });
+  }
+};
 
 app.get("/", (req, res) => {
   res.send("You Man Go NOw");
@@ -29,6 +59,7 @@ async function run() {
   try {
     const database = client.db("Krishi_Bazar");
     const userCollection = database.collection("users");
+    const cropsCollection = database.collection("crops");
 
     //get all the user
     app.get("/user", async (req, res) => {
@@ -46,6 +77,29 @@ async function run() {
         return res.send({ message: "user already exists." });
       }
       const result = await userCollection.insertOne(req.body);
+      res.send(result);
+    });
+
+    // create crops
+    app.post("/crops", verifyFireBaseToken, async (req, res) => {
+      const newProduct = req.body;
+      const result = await cropsCollection.insertOne(newProduct);
+      res.send(result);
+    });
+
+    // my posts
+    app.get("/crops", verifyFireBaseToken, async (req, res) => {
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        if (email !== req.token_email) {
+          return res.status(403).send({ message: "forbidden access" });
+        }
+        query.buyer_email = email;
+      }
+
+      const cursor = cropsCollection.find(query);
+      const result = await cursor.toArray();
       res.send(result);
     });
 
