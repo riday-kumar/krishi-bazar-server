@@ -149,6 +149,14 @@ async function run() {
       res.send(result);
     });
 
+    // delete posts
+    app.delete("/crop/:id", verifyFireBaseToken, async (req, res) => {
+      const cropId = req.params.id;
+      const query = { _id: new ObjectId(cropId) };
+      const result = await cropsCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // create interest for buyer(non-owner)
     app.post("/interest/:id", verifyFireBaseToken, async (req, res) => {
       const interestedId = new ObjectId();
