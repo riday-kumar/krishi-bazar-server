@@ -88,9 +88,16 @@ async function run() {
     });
 
     // all the crops
-    app.get("/all-crops", verifyFireBaseToken, async (req, res) => {
+    app.get("/all-crops", async (req, res) => {
       //   const query = { _id: new ObjectId(params) };
       const cursor = cropsCollection.find({});
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    // get latest 6 crops
+    app.get("/latest-crops", async (req, res) => {
+      const cursor = cropsCollection.find({}).sort({ createdAt: -1 }).limit(6);
       const result = await cursor.toArray();
       res.send(result);
     });
@@ -100,6 +107,19 @@ async function run() {
       const params = req.params.id;
       const query = { _id: new ObjectId(params) };
       const result = await cropsCollection.findOne(query);
+
+      res.send(result);
+    });
+
+    // update crops
+    app.patch("/crops/:id", verifyFireBaseToken, async (req, res) => {
+      const cropId = req.params.id;
+      const updatedData = req.body;
+
+      const filter = { _id: new ObjectId(cropId) };
+      const updateDoc = { $set: updatedData };
+
+      const result = await cropsCollection.updateOne(filter, updateDoc);
 
       res.send(result);
     });
@@ -141,6 +161,60 @@ async function run() {
       const result = await cropsCollection.updateOne(query, update);
       res.send(result);
     });
+
+    // update interest request STATUS
+    // app.patch("/interest/:id", verifyFireBaseToken, async (req, res) => {
+    //   const interestedId = req.params.id;
+    //   const { quantity } = req.body;
+    //   const numericQuantity = Number(quantity);
+
+    //   const query = { _id: new ObjectId(interestedId) };
+    //   const updateQuan = {
+    //     $inc: {
+    //       quantity: -numericQuantity,
+    //     },
+    //   };
+    //   const quantityResult = await cropsCollection.updateOne(query, updateQuan);
+
+    //   res.send(quantityResult);
+    // });
+
+    app.patch(
+      "/interest/:cropId/accept/:interestId",
+      verifyFireBaseToken,
+      async (req, res) => {
+        try {
+          const { cropId, interestId } = req.params;
+          const { quantity } = req.body;
+
+          const numericQuantity = Number(quantity);
+          if (isNaN(numericQuantity) || numericQuantity <= 0) {
+            return res.status(400).json({ error: "Invalid quantity" });
+          }
+
+          const cropObjectId = new ObjectId(cropId);
+          const interestObjectId = new ObjectId(interestId);
+
+          // Use $inc on root quantity + $set on nested interest status
+          const result = await cropsCollection.updateOne(
+            {
+              _id: cropObjectId,
+              "interests._id": interestObjectId,
+              "interests.status": "pending",
+            },
+            {
+              $inc: { quantity: -numericQuantity },
+              $set: { "interests.$.status": "accepted" },
+            }
+          );
+
+          res.send({ message: "Request accepted and quantity updated" });
+        } catch (error) {
+          console.error("Error accepting interest:", error);
+          res.status(500).json({ error: "Internal server error" });
+        }
+      }
+    );
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
