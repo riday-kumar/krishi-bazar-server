@@ -95,6 +95,15 @@ async function run() {
       res.send(result);
     });
 
+    // search product
+    app.get("/crops-search", async (req, res) => {
+      const searchText = req.query.search || "";
+      const result = await cropsCollection
+        .find({ name: { $regex: searchText, $options: "i" } })
+        .toArray();
+      res.send(result);
+    });
+
     // get latest 6 crops
     app.get("/latest-crops", async (req, res) => {
       const cursor = cropsCollection.find({}).sort({ createdAt: -1 }).limit(6);
@@ -163,21 +172,6 @@ async function run() {
     });
 
     // update interest request STATUS
-    // app.patch("/interest/:id", verifyFireBaseToken, async (req, res) => {
-    //   const interestedId = req.params.id;
-    //   const { quantity } = req.body;
-    //   const numericQuantity = Number(quantity);
-
-    //   const query = { _id: new ObjectId(interestedId) };
-    //   const updateQuan = {
-    //     $inc: {
-    //       quantity: -numericQuantity,
-    //     },
-    //   };
-    //   const quantityResult = await cropsCollection.updateOne(query, updateQuan);
-
-    //   res.send(quantityResult);
-    // });
 
     app.patch(
       "/interest/:cropId/accept/:interestId",
