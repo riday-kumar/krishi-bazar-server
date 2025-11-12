@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 var cors = require("cors");
 const bodyParser = require("body-parser");
@@ -87,6 +87,23 @@ async function run() {
       res.send(result);
     });
 
+    // all the crops
+    app.get("/all-crops", verifyFireBaseToken, async (req, res) => {
+      //   const query = { _id: new ObjectId(params) };
+      const cursor = cropsCollection.find({});
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    //find single crop details
+    app.get("/crop/:id", verifyFireBaseToken, async (req, res) => {
+      const params = req.params.id;
+      const query = { _id: new ObjectId(params) };
+      const result = await cropsCollection.findOne(query);
+
+      res.send(result);
+    });
+
     // my posts
     app.get("/crops", verifyFireBaseToken, async (req, res) => {
       const email = req.query.email;
@@ -95,7 +112,7 @@ async function run() {
         if (email !== req.token_email) {
           return res.status(403).send({ message: "forbidden access" });
         }
-        query.buyer_email = email;
+        query["owner.ownerEmail"] = email;
       }
 
       const cursor = cropsCollection.find(query);
