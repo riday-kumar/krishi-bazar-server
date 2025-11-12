@@ -120,6 +120,28 @@ async function run() {
       res.send(result);
     });
 
+    // create interest for buyer(non-owner)
+    app.post("/interest/:id", verifyFireBaseToken, async (req, res) => {
+      const interestedId = new ObjectId();
+      const interest = req.body;
+      const newInterest = {
+        _id: interestedId,
+        ...interest,
+      };
+
+      const params = req.params.id;
+      const query = { _id: new ObjectId(params) };
+
+      const update = {
+        $push: {
+          interests: newInterest,
+        },
+      };
+
+      const result = await cropsCollection.updateOne(query, update);
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("You successfully connected to MongoDB!");
