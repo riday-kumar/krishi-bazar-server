@@ -201,11 +201,6 @@ async function run() {
           const { cropId, interestId } = req.params;
           const { quantity } = req.body;
 
-          const numericQuantity = Number(quantity);
-          if (isNaN(numericQuantity) || numericQuantity <= 0) {
-            return res.status(400).json({ error: "Invalid quantity" });
-          }
-
           const cropObjectId = new ObjectId(cropId);
           const interestObjectId = new ObjectId(interestId);
 
@@ -227,6 +222,32 @@ async function run() {
           console.error("Error accepting interest:", error);
           res.status(500).json({ error: "Internal server error" });
         }
+      }
+    );
+
+    // update interest request STATUS (Reject)
+    app.patch(
+      "/interest/:cropId/reject/:interestId",
+      verifyFireBaseToken,
+      async (req, res) => {
+        const { cropId, interestId } = req.params;
+
+        const cropObjectId = new ObjectId(cropId);
+        const interestObjectId = new ObjectId(interestId);
+
+        // Use $inc on root quantity + $set on nested interest status
+        const result = await cropsCollection.updateOne(
+          {
+            _id: cropObjectId,
+            "interests._id": interestObjectId,
+            "interests.status": "pending",
+          },
+          {
+            $set: { "interests.$.status": "Reject" },
+          }
+        );
+
+        res.send({ message: "Request Rejected" });
       }
     );
 
