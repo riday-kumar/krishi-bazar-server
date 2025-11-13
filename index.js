@@ -149,6 +149,18 @@ async function run() {
       res.send(result);
     });
 
+    // my interests(requests)
+    app.get("/my-interests", verifyFireBaseToken, async (req, res) => {
+      const myEmail = req.query.email;
+      const myInterests = await cropsCollection
+        .find({
+          "owner.ownerEmail": { $ne: myEmail },
+          "interests.userEmail": myEmail,
+        })
+        .toArray();
+      res.send(myInterests);
+    });
+
     // delete posts
     app.delete("/crop/:id", verifyFireBaseToken, async (req, res) => {
       const cropId = req.params.id;
