@@ -201,6 +201,11 @@ async function run() {
           const { cropId, interestId } = req.params;
           const { quantity } = req.body;
 
+          const numericQuantity = Number(quantity);
+          if (isNaN(numericQuantity) || numericQuantity <= 0) {
+            return res.status(400).json({ error: "Invalid quantity" });
+          }
+
           const cropObjectId = new ObjectId(cropId);
           const interestObjectId = new ObjectId(interestId);
 
