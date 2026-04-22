@@ -7,7 +7,13 @@ const port = process.env.PORT || 5000;
 require("dotenv").config();
 
 const admin = require("firebase-admin");
-const serviceAccount = require("./accountKey.json");
+// index.js
+const decoded = Buffer.from(
+  process.env.FIREBASE_SERVICE_KEY,
+  "base64",
+).toString("utf8");
+const serviceAccount = JSON.parse(decoded);
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
@@ -45,7 +51,9 @@ app.get("/", (req, res) => {
 });
 
 // uri
-const uri = `mongodb+srv://${process.env.USER_NAME}:${process.env.USER_PASSWORD}@cluster0.ivoyxep.mongodb.net/?appName=Cluster0`;
+// const uri = `mongodb+srv://${process.env.USER_NAME}:${process.env.USER_PASSWORD}@cluster0.ivoyxep.mongodb.net/?appName=Cluster0`;
+
+const uri = `mongodb+srv://${process.env.USER_NAME}:${process.env.USER_PASSWORD}@cluster0.k2sjtsj.mongodb.net/?appName=Cluster0`;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -219,7 +227,7 @@ async function run() {
             {
               $inc: { quantity: -numericQuantity },
               $set: { "interests.$.status": "accepted" },
-            }
+            },
           );
 
           res.send({ message: "Request accepted and quantity updated" });
@@ -227,7 +235,7 @@ async function run() {
           console.error("Error accepting interest:", error);
           res.status(500).json({ error: "Internal server error" });
         }
-      }
+      },
     );
 
     // update interest request STATUS (Reject)
@@ -249,15 +257,15 @@ async function run() {
           },
           {
             $set: { "interests.$.status": "Reject" },
-          }
+          },
         );
 
         res.send({ message: "Request Rejected" });
-      }
+      },
     );
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log("You successfully connected to MongoDB!");
   } finally {
     //
